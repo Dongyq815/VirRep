@@ -23,6 +23,12 @@ def get_opts(args):
                         type=str,
                         help='Output directory for saving the prediction.')
     
+    parser.add_argument('--label',
+                        required=False,
+                        type=str,
+                        default='',
+                        help='Prefix to append to the output filename.')
+    
     parser.add_argument('-m', '--model',
                         required=False,
                         type=str,
@@ -243,11 +249,16 @@ if __name__ == '__main__':
     if not os.path.exists(options.output_dir):
         os.makedirs(options.output_dir)
         
+    if options.label != '':
+        options.label = options.label+'_'
+        
     prefix = '_'.join(options.input_file.split('/')[-1].split('.')[0:-1])
-    outpath_df = os.path.join(options.output_dir, prefix+'_score.tsv')
+    outpath_df = os.path.join(options.output_dir,
+                              options.label+prefix+'_score.tsv')
     pred_df.to_csv(outpath_df, index=False, sep='\t')
     
-    outpath_fa = os.path.join(options.output_dir, prefix+'_viruses.fna')
+    outpath_fa = os.path.join(options.output_dir,
+                              options.label+prefix+'_viruses.fna')
     
     if options.provirus_off:
         extract_seq(pred_df, options.input_file, options.min_score,
