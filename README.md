@@ -7,7 +7,6 @@ strength of both DNA language rules and sequence homology to improve classificat
 Make sure you have the dependencies below installed and accessible in your $PATH.
 
 ### Prepare dependencies
-***
 
 - python 3.7
 - biopython
@@ -43,7 +42,7 @@ conda install pytorch torchvision torchaudio cudatoolkit=11.7 -c pytorch
 ### Installation VirRep via git
 
 ```
-git clone https://github.com/ZhaoXM-Lab/VirRep.git
+git clone https://github.com/Dongyq815/VirRep.git
 ```
 ___
 
@@ -66,10 +65,9 @@ In the output directory (vr_out), there are two files:
 - `test_score.tsv`: table with score of each viral sequence and a few more features
 
 **Note**
+
 Note that suffix `||full` or `||partial` is appended to the original sequence identifier, 
 indicating whether the viral sequence is extracted from a larger scaffold.
-
-___
 
 2. Run VirRep skipping over the iterative segment extension mechanism:
 ```
@@ -78,7 +76,6 @@ python VirRep.py -i test.fasta -o vr_out --provirus-off -w 2
 
 This is useful when comparing VirRep with other methods on a benchmark dataset, 
 as all input sequences will report a score in the output `.tsv` file.
-___
 
 3. Run VirRep on bulk metagenomes:
 ```
@@ -86,7 +83,6 @@ python VirRep.py -i toy.fasta -o vr_out --conservative -w 2
 ```
 In this mode, VirRep will use conservative settings to reduce false positives and only output high-confidence 
 viral sequences.
----
 
 ### Complete options
 You can run `python VirRep.py -h` to see all options.
@@ -97,6 +93,7 @@ You can run `python VirRep.py -h` to see all options.
                          Input file in fasta format.
    -o OUTPUT_DIR, --output-dir OUTPUT_DIR
                          Output directory.
+   --label LABEL         Prefix to append to the output filename. (default: )
    -m MODEL, --model MODEL
                         Model path (default: model/VirRep.pth)
   --conservative        Apply conservative settings. This is equivalent to the
