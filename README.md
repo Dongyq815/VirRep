@@ -55,7 +55,7 @@ likelihood of being a viral sequence.
 ***
 1. Run VirRep on a test dataset with GPU acceleration:
 ```
-python VirRep.py -i test.fasta -o vr_out -w 2 --min-score 1000-5000:0.9,5001-10000:0.8,10001-Inf:0.7
+python VirRep.py -i test/test.fasta -o vr_out -w 2 --min-score 1000-5000:0.9,5001-10000:0.8,10001-Inf:0.7
 ls vr_out
 ```
 
@@ -71,7 +71,7 @@ indicating whether the viral sequence is extracted from a larger scaffold.
 
 2. Run VirRep skipping over the iterative segment extension mechanism:
 ```
-python VirRep.py -i test.fasta -o vr_out --provirus-off -w 2
+python VirRep.py -i test/test.fasta -o vr_out --provirus-off -w 2
 ```
 
 This is useful when comparing VirRep with other methods on a benchmark dataset, 
@@ -79,7 +79,7 @@ as all input sequences will report a score in the output `.tsv` file.
 
 3. Run VirRep on bulk metagenomes:
 ```
-python VirRep.py -i toy.fasta -o vr_out --conservative -w 2
+python VirRep.py -i test/toy.fasta -o vr_out --conservative -w 2
 ```
 In this mode, VirRep will use conservative settings to reduce false positives and only output high-confidence 
 viral sequences.
