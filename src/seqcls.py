@@ -59,9 +59,6 @@ class SeqCls(nn.Module):
     def forward(self, input_fw_semantic, input_rc_semantic,
                 input_fw_aln, input_rc_aln):
         
-        """
-        input_xx: (batch, seqlen)
-        """
         batchsz = input_fw_semantic.size(0)
         input_fw_semantic = input_fw_semantic.view(self.config.split*batchsz,
                                                    self.bert_maxnum_token)
@@ -77,9 +74,7 @@ class SeqCls(nn.Module):
         alnembed_fw, alnembed_rc = self.aln_encoder(
             input_fw_aln, input_rc_aln)
         
-        ##### [batch*config.split, concat_features]
         embed_fw = torch.cat([bertembed_fw, alnembed_fw], dim=1)
-        ##### [batch, config.split*concat_features]
         embed_fw = embed_fw.view(batchsz, self.config.split*self.concat_features)
         
         embed_rc = torch.cat([bertembed_rc, alnembed_rc], dim=1)
