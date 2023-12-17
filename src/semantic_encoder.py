@@ -617,13 +617,6 @@ class BertForMaskedLM(BertPreTrainedModel):
         #     outputs = (masked_lm_loss,) + outputs
 
         return outputs
-    
-    def count_params(self):
-        return sum(p.numel() for p in self.parameters() if p.requires_grad)
-
-    def count_params_per_layer(self):
-        return [(name, param.numel()) for name, param in self.named_parameters() if
-                param.requires_grad]
  
     
 class BertForSeqCls(BertPreTrainedModel):
@@ -686,13 +679,6 @@ class BertForSeqCls(BertPreTrainedModel):
         
         return probs
     
-    def count_params(self):
-        return sum(p.numel() for p in self.parameters() if p.requires_grad)
-
-    def num_params_per_layer(self):
-        return [(name, param.numel()) for name, param in self.named_parameters()
-                if param.requires_grad]
-    
     
 class SemanticEncoder(BertPreTrainedModel):
     def __init__(self, config):
@@ -706,10 +692,3 @@ class SemanticEncoder(BertPreTrainedModel):
         pooled_output_rc = self.bert(input_ids_rc)[1]
         
         return pooled_output_fw, pooled_output_rc
-    
-    def count_params(self):
-        return sum(p.numel() for p in self.parameters() if p.requires_grad)
-
-    def num_params_per_layer(self):
-        return [(name, param.numel()) for name, param in self.named_parameters()
-                if param.requires_grad]

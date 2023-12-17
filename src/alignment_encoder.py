@@ -108,17 +108,9 @@ class AEForSimPred(nn.Module):
     
     
     def forward(self, input_fw, input_rc):
+        
         embed_fw = self.embedding(input_fw)
         embed_rc = self.embedding(input_rc)
-        
-        # out_fw, (hn_fw, cn_fw) = self.encoder(embed_fw)
-        # out_rc, (hn_rc, cn_rc) = self.encoder(embed_rc)
-        
-        # seqembed_fw = out_fw.mean(dim=1)
-        # seqembed_rc = out_rc.mean(dim=1)
-        
-        # seqembed_fw = self.ln_encoder(seqembed_fw)
-        # seqembed_rc = self.ln_encoder(seqembed_rc)
         
         seqembed_fw = self.encoder(embed_fw)
         seqembed_rc = self.encoder(embed_rc)
@@ -137,22 +129,8 @@ class AlignmentEncoder(nn.Module):
     
     def __init__(self, config):
         super(AlignmentEncoder, self).__init__()
-        # direction = 2 if config.bidirectional else 1
         
         self.embedding = KmerEmbedding(config)
-        
-        # self.encoder = nn.LSTM(input_size=config.embed_size,
-        #                        hidden_size=config.hidden_size,
-        #                        num_layers=config.num_lstm_layers,
-        #                        batch_first=True,
-        #                        dropout=config.dropout_rate,
-        #                        bidirectional=config.bidirectional)
-        
-        # self.ln_encoder = nn.Sequential()
-        # self.ln_encoder.add_module('ln', nn.LayerNorm(
-        #     direction*config.hidden_size))
-        # self.ln_encoder.add_module('dropout', nn.Dropout(config.dropout_rate))
-        
         self.encoder = LSTMEncoder(config)
         self.pooler = Pooler(config)
         
@@ -162,15 +140,6 @@ class AlignmentEncoder(nn.Module):
         embed_fw = self.embedding(input_fw)
         embed_rc = self.embedding(input_rc)
         
-        # out_fw, (hn_fw, cn_fw) = self.encoder(embed_fw)
-        # out_rc, (hn_rc, cn_rc) = self.encoder(embed_rc)
-        
-        # seqembed_fw = out_fw.mean(dim=1)
-        # seqembed_rc = out_rc.mean(dim=1)
-        
-        # seqembed_fw = self.ln_encoder(seqembed_fw)
-        # seqembed_rc = self.ln_encoder(seqembed_rc)
-        
         seqembed_fw = self.encoder(embed_fw)
         seqembed_rc = self.encoder(embed_rc)
         
@@ -178,9 +147,6 @@ class AlignmentEncoder(nn.Module):
         pooled_output_rc = self.pooler(seqembed_rc)
         
         return pooled_output_fw, pooled_output_rc
-    
-    def count_params(self):
-        return sum(p.numel() for p in self.parameters() if p.requires_grad)
     
 
 class AlnConfig():
