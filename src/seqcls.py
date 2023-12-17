@@ -46,7 +46,7 @@ class SeqCls(nn.Module):
                     config.fc_units[i-1], config.fc_units[i]))
                 
             self.classifier.add_module(
-                'ln'+str(i+1), nn.LayerNorm(config.fc_units[i]))
+                'LayerNorm'+str(i+1), nn.LayerNorm(config.fc_units[i]))
             self.classifier.add_module('relu', nn.ReLU())
             self.classifier.add_module(
                 'dropout', nn.Dropout(config.dropout_rate))
@@ -96,7 +96,7 @@ class SeqclsConfig():
                  bert_num_encoders, bert_num_attention_heads,
                  bert_forward_size, alnenc_embed_size,
                  alnenc_hidden_size, alnenc_num_lstm_layers,
-                 alnenc_lstm_bidirectional, fc_units, dropout_rate):
+                 alnenc_lstm_bidirectional, fc_units, dropout_rate=0.1):
         
         self.k = k
         self.maxseqlen = maxseqlen

@@ -8,7 +8,7 @@ Make sure you have the dependencies below installed and accessible in your $PATH
 
 ### Prepare dependencies
 
-- python 3.7
+- python >= 3.7
 - biopython
 - numpy
 - pandas
@@ -18,13 +18,13 @@ Make sure you have the dependencies below installed and accessible in your $PATH
 - scikit-learn
 - packaging
 
-1. create a virtual environment
+1. Create a virtual environment
 ```
-conda create -n vr python=3.7
+conda create -n vr python
 conda activate vr
 ```
 
-2. install python modules: biopython, numpy, pandas, tqdm, scipy, scikit-learn, packaging
+2. Install python modules: biopython, numpy, pandas, tqdm, scipy, scikit-learn, packaging
 ```
 conda install -c bioconda biopython numpy, pandas, tqdm, scipy, scikit-learn, packaging
 ```
@@ -34,12 +34,12 @@ or
 pip install biopython numpy, pandas, tqdm, scipy, scikit-learn, packaging
 ```
 
-3. install pytorch following the instructions in [https://pytorch.org/get-started/locally/](https://pytorch.org/get-started/locally/). 
+3. Install pytorch following the instructions in [https://pytorch.org/get-started/locally/](https://pytorch.org/get-started/locally/). 
 For example, if your machine has NVIDIA GPU and supprots CUDA 11.7, you can run the following command:
 ```
 conda install pytorch torchvision torchaudio cudatoolkit=11.7 -c pytorch
 ```
-### Installation VirRep via git
+### Install VirRep via git
 
 ```
 git clone https://github.com/Dongyq815/VirRep.git

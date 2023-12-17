@@ -532,6 +532,167 @@ class BertModel(BertPreTrainedModel):
         # sequence_output, pooled_output, (hidden_states), (attentions)
         return outputs
     
+
+class BertForMaskedLM(BertPreTrainedModel):
+    def __init__(self, config):
+        super().__init__(config)
+
+        self.bert = BertModel(config)
+        self.cls = BertOnlyMLMHead(config)
+
+        self.init_weights()
+
+    def get_output_embeddings(self):
+        return self.cls.predictions.decoder
+
+    def forward(
+            self,
+            input_ids=None,
+            attention_mask=None,
+            position_ids=None,
+            head_mask=None,
+            inputs_embeds=None,
+            masked_lm_labels=None,
+            encoder_hidden_states=None,
+            encoder_attention_mask=None
+    ):
+        r"""
+        masked_lm_labels (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_length)`, `optional`, defaults to :obj:`None`):
+            Labels for computing the masked language modeling loss.
+            Indices should be in ``[-100, 0, ..., config.vocab_size]`` (see ``input_ids`` docstring)
+            Tokens with indices set to ``-100`` are ignored (masked), the loss is only computed for the tokens with labels
+            in ``[0, ..., config.vocab_size]``
+        lm_labels (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_length)`, `optional`, defaults to :obj:`None`):
+            Labels for computing the left-to-right language modeling loss (next word prediction).
+            Indices should be in ``[-100, 0, ..., config.vocab_size]`` (see ``input_ids`` docstring)
+            Tokens with indices set to ``-100`` are ignored (masked), the loss is only computed for the tokens with labels
+            in ``[0, ..., config.vocab_size]``
+    Returns:
+        :obj:`tuple(torch.FloatTensor)` comprising various elements depending on the configuration (:class:`~transformers.BertConfig`) and inputs:
+        masked_lm_loss (`optional`, returned when ``masked_lm_labels`` is provided) ``torch.FloatTensor`` of shape ``(1,)``:
+            Masked language modeling loss.
+        ltr_lm_loss (:obj:`torch.FloatTensor` of shape :obj:`(1,)`, `optional`, returned when :obj:`lm_labels` is provided):
+                Next token prediction loss.
+        prediction_scores (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_length, config.vocab_size)`)
+            Prediction scores of the language modeling head (scores for each vocabulary token before SoftMax).
+        hidden_states (:obj:`tuple(torch.FloatTensor)`, `optional`, returned when ``config.output_hidden_states=True``):
+            Tuple of :obj:`torch.FloatTensor` (one for the output of the embeddings + one for the output of each layer)
+            of shape :obj:`(batch_size, sequence_length, hidden_size)`.
+            Hidden-states of the model at the output of each layer plus the initial embedding outputs.
+        attentions (:obj:`tuple(torch.FloatTensor)`, `optional`, returned when ``config.output_attentions=True``):
+            Tuple of :obj:`torch.FloatTensor` (one for each layer) of shape
+            :obj:`(batch_size, num_heads, sequence_length, sequence_length)`.
+            Attentions weights after the attention softmax, used to compute the weighted average in the self-attention
+            heads.
+        Examples::
+            from transformers import BertTokenizer, BertForMaskedLM
+            import torch
+            tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+            model = BertForMaskedLM.from_pretrained('bert-base-uncased')
+            input_ids = torch.tensor(tokenizer.encode(
+                "Hello, my dog is cute",add_special_tokens=True)).unsqueeze(0)  # Batch size 1
+            outputs = model(input_ids, masked_lm_labels=input_ids)
+            loss, prediction_scores = outputs[:2]
+        """
+
+        outputs = self.bert(
+            input_ids,
+            attention_mask=attention_mask,
+            position_ids=position_ids,
+            head_mask=head_mask,
+            inputs_embeds=inputs_embeds,
+            encoder_hidden_states=encoder_hidden_states,
+            encoder_attention_mask=encoder_attention_mask,
+        )
+
+        sequence_output = outputs[0]
+        logits = self.cls(sequence_output)
+
+        # Add hidden states and attention if they are here
+        outputs = (logits,) + outputs[2:]
+        
+        # if masked_lm_labels is not None:
+        #     masked_lm_loss = self.loss_fct(logits.view(
+        #         -1, self.config.vocab_size), masked_lm_labels.view(-1))
+        #     outputs = (masked_lm_loss,) + outputs
+
+        return outputs
+    
+    def count_params(self):
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
+
+    def count_params_per_layer(self):
+        return [(name, param.numel()) for name, param in self.named_parameters() if
+                param.requires_grad]
+ 
+    
+class BertForSeqCls(BertPreTrainedModel):
+    def __init__(self, config):
+        super().__init__(config)
+        self.num_labels = config.num_labels
+
+        self.bert = BertModel(config, add_pooling_layer=True)
+        self.classifier = nn.Linear(config.hidden_size, self.config.num_labels)
+        self.sigmoid = nn.Sigmoid()
+
+        self.init_weights()
+
+    def forward(
+        self,
+        input_ids_fw=None,
+        input_ids_rc=None,
+    ):
+        r"""
+        labels (:obj:`torch.LongTensor` of shape :obj:`(batch_size,)`, `optional`, defaults to :obj:`None`):
+            Labels for computing the sequence classification/regression loss.
+            Indices should be in :obj:`[0, ..., config.num_labels - 1]`.
+            If :obj:`config.num_labels == 1` a regression loss is computed (Mean-Square loss),
+            If :obj:`config.num_labels > 1` a classification loss is computed (Cross-Entropy).
+    Returns:
+        :obj:`tuple(torch.FloatTensor)` comprising various elements depending on the configuration (:class:`~transformers.BertConfig`) and inputs:
+        loss (:obj:`torch.FloatTensor` of shape :obj:`(1,)`, `optional`, returned when :obj:`label` is provided):
+            Classification (or regression if config.num_labels==1) loss.
+        logits (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, config.num_labels)`):
+            Classification (or regression if config.num_labels==1) scores (before SoftMax).
+        hidden_states (:obj:`tuple(torch.FloatTensor)`, `optional`, returned when ``config.output_hidden_states=True``):
+            Tuple of :obj:`torch.FloatTensor` (one for the output of the embeddings + one for the output of each layer)
+            of shape :obj:`(batch_size, sequence_length, hidden_size)`.
+            Hidden-states of the model at the output of each layer plus the initial embedding outputs.
+        attentions (:obj:`tuple(torch.FloatTensor)`, `optional`, returned when ``config.output_attentions=True``):
+            Tuple of :obj:`torch.FloatTensor` (one for each layer) of shape
+            :obj:`(batch_size, num_heads, sequence_length, sequence_length)`.
+            Attentions weights after the attention softmax, used to compute the weighted average in the self-attention
+            heads.
+    Examples::
+        from transformers import BertTokenizer, BertForSequenceClassification
+        import torch
+        tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+        model = BertForSequenceClassification.from_pretrained('bert-base-uncased')
+        input_ids = torch.tensor(tokenizer.encode("Hello, my dog is cute", add_special_tokens=True)).unsqueeze(0)  # Batch size 1
+        labels = torch.tensor([1]).unsqueeze(0)  # Batch size 1
+        outputs = model(input_ids, labels=labels)
+        loss, logits = outputs[:2]
+        """
+    
+        pooled_output_fw = self.bert(input_ids_fw)[1]
+        pooled_output_rc = self.bert(input_ids_rc)[1]
+        
+        logits_fw = self.classifier(pooled_output_fw)
+        probs_fw = self.sigmoid(logits_fw)
+        
+        logits_rc = self.classifier(pooled_output_rc)
+        probs_rc = self.sigmoid(logits_rc)
+        probs = (probs_fw + probs_rc) / 2
+        
+        return probs
+    
+    def count_params(self):
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
+
+    def num_params_per_layer(self):
+        return [(name, param.numel()) for name, param in self.named_parameters()
+                if param.requires_grad]
+    
     
 class SemanticEncoder(BertPreTrainedModel):
     def __init__(self, config):
