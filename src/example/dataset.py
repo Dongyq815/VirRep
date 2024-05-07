@@ -46,7 +46,7 @@ class BertPretrainData(Dataset):
             tokens.append(self.token2id.get(seq[pos:pos+self.k], 0))
             pos += 1
         
-        return torch.torch.IntTensor(tokens)
+        return torch.IntTensor(tokens)
     
     def __getitem__(self, index):
         seq_tokens = self.seqencode(self.seqs[index])

@@ -137,13 +137,13 @@ class SeqData(Dataset):
         self.id2token_semantic.extend(self.kmerset)
         self.token2id_semantic = {
             token:idx for idx, token in enumerate(self.id2token_semantic)
-            }
+        }
         
         self.id2token_aln = ['[UNK]']
         self.id2token_aln.extend(self.kmerset)
         self.token2id_aln = {
             token:idx for idx, token in enumerate(self.id2token_aln)
-            }
+        }
         
         print('Segment seqs...')
         self.segment_list, self.position_list, self.idx_list = segmentation(seqs, min_seqlen)
@@ -168,8 +168,8 @@ class SeqData(Dataset):
     
     def encode_semantic(self, segment):
         
-        input_ids = [self.encode_semantic_piece(segment[0:500]),
-                     self.encode_semantic_piece(segment[500:1000])]
+        input_ids = self.encode_semantic_piece(segment[0:500]) + \
+                    self.encode_semantic_piece(segment[500:1000])
         return torch.IntTensor(input_ids)
     
     def encode_semantic_piece(self, piece):
@@ -186,8 +186,8 @@ class SeqData(Dataset):
     
     def encode_aln(self, segment):
         
-        input_ids = [self.encode_aln_piece(segment[0:500]),
-                     self.encode_aln_piece(segment[500:1000])]
+        input_ids = self.encode_aln_piece(segment[0:500]) + \
+                    self.encode_aln_piece(segment[500:1000])
         return torch.IntTensor(input_ids)
     
     def encode_aln_piece(self, piece):

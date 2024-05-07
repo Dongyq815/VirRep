@@ -11,8 +11,12 @@ class SkipGram(nn.Module):
         self.kmer_size = 4**k
         self.embedding_size = embedding_size
         
-        self.embedding_in = nn.Embedding(self.kmer_size, embedding_size, sparse=True)
-        self.embedding_out = nn.Embedding(self.kmer_size, embedding_size, sparse=True)
+        self.embedding_in = nn.Embedding(
+            self.kmer_size, embedding_size, sparse=True
+        )
+        self.embedding_out = nn.Embedding(
+            self.kmer_size, embedding_size, sparse=True
+        )
         
         self.embedding_in.weight.data.uniform_(-1, 1)
         self.embedding_out.weight.data.uniform_(-1, 1)
@@ -34,10 +38,11 @@ class KmerEmbedding(nn.Module):
     def __init__(self, config):
         super(KmerEmbedding, self).__init__()
         
-        self.kmer_embedding = nn.Embedding(config.vocab_size,
-                                           config.embed_size,
-                                           padding_idx=0)
-        self.LayerNorm = nn.LayerNorm(config.embed_size)
+        self.kmer_embedding = nn.Embedding(
+            config.vocab_size, config.embed_size, padding_idx=0)
+        self.LayerNorm = nn.LayerNorm(
+            config.embed_size, eps=config.layer_norm_eps
+        )
         self.dropout = nn.Dropout(config.dropout_rate)
         
     def forward(self, input_ids):
@@ -50,14 +55,18 @@ class LSTMEncoder(nn.Module):
         super(LSTMEncoder, self).__init__()
         direction = 2 if config.bidirectional else 1
         
-        self.lstm = nn.LSTM(input_size=config.embed_size,
-                            hidden_size=config.hidden_size,
-                            num_layers=config.num_lstm_layers,
-                            batch_first=True,
-                            dropout=config.dropout_rate,
-                            bidirectional=config.bidirectional)
+        self.lstm = nn.LSTM(
+            input_size=config.embed_size,
+            hidden_size=config.hidden_size,
+            num_layers=config.num_lstm_layers,
+            batch_first=True,
+            dropout=config.dropout_rate,
+            bidirectional=config.bidirectional
+        )
         
-        self.LayerNorm = nn.LayerNorm(direction*config.hidden_size)
+        self.LayerNorm = nn.LayerNorm(
+            direction*config.hidden_size, eps=config.layer_norm_eps
+        )
         self.dropout = nn.Dropout(config.dropout_rate)
         
     def forward(self, embeddings):
@@ -75,8 +84,12 @@ class Pooler(nn.Module):
         super(Pooler, self).__init__()
         direction = 2 if config.bidirectional else 1
         
-        self.linear = nn.Linear(direction*config.hidden_size, config.hidden_size)
-        self.LayerNorm = nn.LayerNorm(config.hidden_size)
+        self.linear = nn.Linear(
+            direction*config.hidden_size, config.hidden_size
+        )
+        self.LayerNorm = nn.LayerNorm(
+            config.hidden_size, eps=config.layer_norm_eps
+        )
         self.Tanh = nn.Tanh()
         self.dropout = nn.Dropout(config.dropout_rate)
         
@@ -151,8 +164,16 @@ class AlignmentEncoder(nn.Module):
 
 class AlnConfig():
     
-    def __init__(self, vocab_size, embed_size, hidden_size,
-                 num_lstm_layers, bidirectional, dropout_rate=0.1):
+    def __init__(
+        self,
+        vocab_size,
+        embed_size,
+        hidden_size,
+        num_lstm_layers,
+        bidirectional,
+        dropout_rate=0.1,
+        layer_norm_eps=1e-12
+    ):
         
         self.vocab_size = vocab_size
         self.embed_size = embed_size
@@ -160,3 +181,4 @@ class AlnConfig():
         self.num_lstm_layers = num_lstm_layers
         self.bidirectional = bidirectional
         self.dropout_rate = dropout_rate
+        self.layer_norm_eps = layer_norm_eps

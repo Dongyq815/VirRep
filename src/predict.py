@@ -1,6 +1,8 @@
 import torch
 from torch.utils.data import DataLoader
 from utils import readfa, SeqData
+
+from contextlib import nullcontext
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
@@ -8,9 +10,17 @@ import math
 import os
 
 
-def score_segment(model, fapath, min_seqlen, batchsz=256,
-                  num_workers=0, cpu=False, cpu_threads=1,
-                  gpu_device=0):
+def score_segment(
+        model,
+        fapath,
+        min_seqlen,
+        use_amp,
+        batchsz=256,
+        num_workers=0,
+        cpu=False,
+        cpu_threads=1,
+        gpu_device=0
+    ):
     
     if not cpu:
         device = 'cuda:' + str(gpu_device)
@@ -42,12 +52,20 @@ def score_segment(model, fapath, min_seqlen, batchsz=256,
             input_rc_smt = input_rc_smt.to(device)
             input_fw_aln = input_fw_aln.to(device)
             input_rc_aln = input_rc_aln.to(device)
+            
         positions = positions.numpy().squeeze().tolist()
         indices = indices.numpy().squeeze().tolist()
         
         with torch.no_grad():
-            scores = model(input_fw_smt, input_rc_smt, input_fw_aln,
-                           input_rc_aln).cpu().numpy().squeeze().tolist()
+            device_type = 'cpu' if cpu else 'cuda'
+            context = torch.autocast(device_type) if use_amp else nullcontext()
+                
+            with context:
+                scores = model(
+                    input_fw_smt, input_rc_smt,
+                    input_fw_aln, input_rc_aln
+                )
+            scores = scores.cpu().float().numpy().squeeze().tolist()
         
         assert len(scores) == len(indices)
         assert len(scores) == len(positions)
@@ -299,9 +317,11 @@ def posthoc_check(pred_merge, headers_dict, seqlen_dict,
             seqlen_dict_tmp = {idx: seqlen_dict[idx]}
             scores_dict_tmp = {idx: scores_dict[idx][begin:terminal+1]}
             positions_dict_tmp = {idx: positions_dict[idx][begin:terminal+1]}
-            pred_extend = extend(headers_dict_tmp, seqlen_dict_tmp,
-                                 scores_dict_tmp, positions_dict_tmp,
-                                 minscore, posthoc=True)
+            pred_extend = extend(
+                headers_dict_tmp, seqlen_dict_tmp,
+                scores_dict_tmp, positions_dict_tmp,
+                minscore, posthoc=True
+            )
             
             pred_merge_tmp = merge(pred_extend)
             header_keep.extend(pred_merge_tmp['seqname'].tolist())
@@ -317,35 +337,48 @@ def posthoc_check(pred_merge, headers_dict, seqlen_dict,
             start_keep.append(start)
             end_keep.append(end)
             
-    pred_df =  pd.DataFrame({'seqname': header_keep, 'hitlen': hitlen_keep,
-                             'score': score_keep, 'start': start_keep,
-                             'end': end_keep})
+    pred_df =  pd.DataFrame(
+        {'seqname': header_keep,
+         'hitlen': hitlen_keep,
+         'score': score_keep,
+         'start': start_keep,
+         'end': end_keep}
+    )
     
     if check_flag:
-        return posthoc_check(pred_df, headers_dict, seqlen_dict,
-                             scores_dict, positions_dict, minscore_dict)
+        return posthoc_check(
+            pred_df, headers_dict, seqlen_dict,
+            scores_dict, positions_dict, minscore_dict
+        )
     else:
         return pred_df
     
 
 
-def predict(model, fapath,
-            min_seqlen=1000,
-            baseline=0.5,
-            batchsz=256,
-            num_workers=0,
-            cpu=False,
-            cpu_threads=1,
-            gpu_device=0,
-            provirus_off=False,
-            maxgap=5000,
-            maxfrac=0.1,
-            provirus_minlen=5000,
-            provirus_minfrac=1,
-            minscore_dict={'1000-Inf': 0.5}):
+def predict(
+        model,
+        use_amp,
+        fapath,
+        min_seqlen=1000,
+        baseline=0.5,
+        batchsz=256,
+        num_workers=0,
+        cpu=False,
+        cpu_threads=1,
+        gpu_device=0,
+        provirus_off=False,
+        maxgap=5000,
+        maxfrac=0.1,
+        provirus_minlen=5000,
+        provirus_minfrac=1,
+        minscore_dict={'1000-Inf': 0.5}
+    ):
     
     headers_dict, seqlen_dict, scores_dict, positions_dict = score_segment(
-        model, fapath, min_seqlen, batchsz, num_workers, cpu, cpu_threads, gpu_device)
+        model, fapath, min_seqlen,
+        use_amp, batchsz, num_workers,
+        cpu, cpu_threads, gpu_device
+    )
         
     if provirus_off:
         pred_df = {'seqname': [], 'seqlen': [], 'score': []}
@@ -360,11 +393,15 @@ def predict(model, fapath,
         pred_df = pd.DataFrame(pred_df)
         
     else:
-        extension = extend(headers_dict, seqlen_dict, scores_dict,
-                           positions_dict, baseline)
-        pred_merge = merge(extension, maxgap, maxfrac,
-                           provirus_minlen, provirus_minfrac)
-        pred_df = posthoc_check(pred_merge, headers_dict, seqlen_dict,
-                                scores_dict, positions_dict, minscore_dict)
+        extension = extend(
+            headers_dict, seqlen_dict, scores_dict, positions_dict, baseline
+        )
+        pred_merge = merge(
+            extension, maxgap, maxfrac, provirus_minlen, provirus_minfrac
+        )
+        pred_df = posthoc_check(
+            pred_merge, headers_dict, seqlen_dict,
+            scores_dict, positions_dict, minscore_dict
+        )
     
     return pred_df
